@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OHT · Dashboard</title>
+  <style>
+    :root{
+      --bg:#0f1115; --bg-elev:#171a21; --text:#e6e8ec; --muted:#9aa3b2;
+      --accent:#22d3ee; --border:#2a2f3a; --hover:#1b2029;
+      --radius:16px; --pad:16px;
+      --sidebar-w:280px; --topbar-h:56px; --leftbrand-h:128px; --bottombar-h:58px;
+      --shadow:0 8px 24px rgba(0,0,0,.35);
+    }
+    html[data-theme="light"]{ --bg:#f5f7fb; --bg-elev:#ffffff; --text:#0b1220; --muted:#5b667a; --accent:#0ea5e9; --border:#e6e9f0; --hover:#eef2f7; --shadow:0 8px 24px rgba(0,0,0,.08); }
+
+    *,*::before,*::after{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0; background:var(--bg); color:var(--text); font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica Neue,Arial}
+    a{color:inherit; text-decoration:none} button{cursor:pointer; background:none; border:0; color:inherit; font:inherit}
+
+    .shell{ min-height:100dvh; display:grid; width:100%; max-width:768px; margin:0 auto; }
+    .panel{ background:var(--bg-elev); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); }
+
+    /* Top bar */
+    .topbar{ height:var(--topbar-h); display:flex; align-items:center; gap:12px; padding:0 16px; position:sticky; top:0; z-index:60; background:var(--bg-elev); border-bottom:1px solid var(--border); }
+    .route-pill{ display:flex; align-items:center; gap:8px; padding:6px 10px; border:1px solid var(--border); border-radius:999px; background:var(--hover); font-weight:700; }
+    .route-icon{ width:18px; display:inline-grid; place-items:center; }
+    .spacer{flex:1}
+
+    /* Left brand (static) */
+    .leftbrand{ display:none; }
+
+    /* Sidebar */
+    .sidebar{ background:var(--bg-elev); border-right:1px solid var(--border); padding:12px; display:flex; flex-direction:column; gap:8px; border-radius:12px; }
+    .sidebar-inner{ display:flex; flex-direction:column; height:100%; }
+    .nav a,.theme-btn{ display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; color:var(--muted); }
+    .nav a.active,.nav a:hover,.theme-btn:hover{ background:var(--hover); color:var(--text) }
+    .nav .icon{ width:20px; display:inline-grid; place-items:center; }
+    .nav-bottom{ margin-top:auto; padding-top:10px; border-top:1px solid var(--border); }
+    .version{ color:var(--muted); font-size:12px; padding:6px 12px }
+
+    /* Content */
+    main{ padding:12px }
+    .dashboard{ padding:16px; }
+    .panel-top{ border-bottom:none; border-bottom-left-radius:0; border-bottom-right-radius:0; }
+    .panel-body{ border-top-left-radius:0; border-top-right-radius:0; }
+
+    /* Modal (Updates) */
+    .modal{ position:fixed; inset:0; display:none; z-index:100; align-items:center; justify-content:center; }
+    .modal.open{ display:flex }
+    .modal .backdrop{ position:absolute; inset:0; background:rgba(0,0,0,.45) }
+    .modal .card{ position:relative; z-index:1; width:min(640px,92vw); max-height:80vh; overflow:auto; background:var(--bg-elev); border:1px solid var(--border); border-radius:16px; box-shadow:var(--shadow); padding:16px; }
+
+    /* Bottom bar (mobile) */
+    .bottombar{ position:sticky; bottom:0; z-index:40; height:var(--bottombar-h); background:var(--bg-elev); border-top:1px solid var(--border); display:grid; grid-template-columns:repeat(4,1fr); }
+    .bottombar a{ display:grid; place-items:center; color:var(--muted) } .bottombar a.active{ color:var(--text) }
+
+    /* Responsive */
+    @media (max-width: 480px){
+      .shell{ max-width:400px; grid-template-rows: var(--topbar-h) 1fr var(--bottombar-h); grid-template-columns: 1fr; }
+      .topbar{ grid-row:1; grid-column:1 } .content{ grid-row:2; grid-column:1 } .bottombar{ grid-row:3; grid-column:1 }
+      .sidebar,.leftbrand{ display:none } .hamburger{ display:grid }
+      .dashboard{ min-height: calc(100dvh - var(--topbar-h) - var(--bottombar-h)); }
+    }
+    @media (min-width: 481px) and (max-width: 1147px){
+      .shell{ max-width:768px; padding:0 var(--pad); grid-template-columns: 1fr; grid-template-rows: var(--topbar-h) 1fr; }
+      .topbar{ grid-column:1; grid-row:1 } .content{ grid-column:1; grid-row:2 } .bottombar{ display:none } .sidebar,.leftbrand{ display:none } .hamburger{ display:none }
+      .dashboard{ min-height: calc(100dvh - var(--topbar-h)); }
+    }
+    @media (min-width: 1148px){
+      body{ padding-left: var(--sidebar-w); }
+      /* static left brand strip above sidebar */
+      .leftbrand{ display:flex; position:fixed; left:0; top:0; width:var(--sidebar-w); height:var(--leftbrand-h); background:var(--bg-elev); border-right:1px solid var(--border); align-items:center; justify-content:center; z-index:41; }
+      .leftbrand .stack{ display:flex; flex-direction:column; align-items:center; gap:6px; }
+      .leftbrand .logo{ width:44px; height:44px; color:var(--text); }
+      .leftbrand .title{ font-weight:800; letter-spacing:.6px }
+      .leftbrand .subtitle{ font-size:12px; color:var(--muted) }
+      .sidebar{ display:block; position:fixed; left:0; top:var(--leftbrand-h); height:calc(100dvh - var(--leftbrand-h)); width:var(--sidebar-w); border-radius:0; box-shadow:var(--shadow); }
+      .shell{ max-width:768px; padding:0 var(--pad); grid-template-columns: 1fr; grid-template-rows: var(--topbar-h) 1fr; }
+      .topbar{ grid-column:1; grid-row:1 } .content{ grid-column:1; grid-row:2 } .bottombar{ display:none } .hamburger{ display:none }
+      .dashboard{ min-height: calc(100dvh - var(--topbar-h)); }
+    }
+  </style>
+</head>
+<body>
+  <!-- STATIC LEFT BRAND -->
+  <div class="leftbrand" id="leftbrand">
+    <div class="stack">
+      <!-- Compass SVG (inherits currentColor) -->
+      <svg class="logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none" role="img" aria-label="OHT compass">
+        <circle cx="64" cy="64" r="48" stroke="currentColor" stroke-width="8" fill="none"/>
+        <path d="M64 40 L76 52 L64 64 L52 52 Z" stroke="currentColor" stroke-width="6" fill="none"/>
+        <path d="M64 16 L64 28" stroke="currentColor" stroke-width="6"/>
+        <path d="M64 100 L64 112" stroke="currentColor" stroke-width="6"/>
+        <path d="M16 64 L28 64" stroke="currentColor" stroke-width="6"/>
+        <path d="M100 64 L112 64" stroke="currentColor" stroke-width="6"/>
+      </svg>
+      <div class="title">OHT</div>
+      <div class="subtitle">Overall Health Tracker</div>
+    </div>
+  </div>
+
+  <div class="shell" id="appShell">
+    <!-- TOP BAR -->
+    <header class="topbar panel panel-top">
+      <div class="route-pill"><span class="route-icon" id="pageIconTop">🏠</span><span id="pageTitleTop">Dashboard</span></div>
+      <div class="spacer"></div>
+      <button id="topCog" aria-label="Settings" title="Updates" style="padding:6px 10px; border-radius:10px; border:1px solid var(--border); background:var(--hover)">⚙️</button>
+    </header>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar panel" id="sidebar">
+      <div class="sidebar-inner">
+        <nav class="nav nav-top">
+          <a class="active" href="#"><span class="icon">🏠</span><span>Dashboard</span></a>
+          <a href="#health"><span class="icon">🩺</span><span>Health</span></a>
+          <a href="#calories"><span class="icon">📊</span><span>Calories</span></a>
+          <a href="#food"><span class="icon">🍽️</span><span>Food</span></a>
+          <a href="#fitness"><span class="icon">🏋️</span><span>Fitness</span></a>
+          <a href="#soreness"><span class="icon">🧠</span><span>Soreness</span></a>
+          <a href="#meso"><span class="icon">🗓️</span><span>Meso</span></a>
+          <a href="#hypertrophy"><span class="icon">💪</span><span>Hypertrophy</span></a>
+        </nav>
+        <div class="nav nav-bottom">
+          <button id="themeToggle" class="theme-btn" type="button"><span class="icon">🌓</span><span id="themeLabel">Dark theme</span></button>
+          <button id="updatesBtn" class="theme-btn" type="button"><span class="icon">📝</span><span>Updates</span></button>
+          <div class="version">Version <span id="appVersion">0.2.5</span></div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <section class="content">
+      <main class="panel dashboard content-inner panel-body">
+        <div id="routeOutlet"></div>
+        <p id="dashCopy" style="opacity:.8; color:var(--muted)">
+          Shell only for now. This page enforces a 400px mobile profile and a 768px desktop profile with 16px side padding (736px working area).
+        </p>
+      </main>
+    </section>
+
+    <!-- MOBILE BOTTOM BAR -->
+    <nav class="bottombar" aria-label="Primary">
+      <a class="active" href="#">🏠</a><a href="#fitness">🏋️</a><a href="#soreness">🧠</a><a href="#more">⋯</a>
+    </nav>
+  </div>
+
+  <!-- UPDATES MODAL -->
+  <div class="modal" id="updatesModal" aria-hidden="true">
+    <div class="backdrop" id="updatesBackdrop"></div>
+    <div class="card">
+      <h3>OHT · Updates</h3>
+      <div style="color:var(--muted); margin-bottom:8px">Current version: <strong id="modalVersion">0.2.5</strong></div>
+      <ul class="changelog" id="changelogList"></ul>
+      <div style="text-align:right; margin-top:12px"><button id="updatesClose" class="theme-btn" type="button">Close</button></div>
+    </div>
+  </div>
+
+  <script>
+    const APP_VERSION='0.2.5';
+    const htmlEl=document.documentElement, bodyEl=document.body, shell=document.getElementById('appShell');
+    const pageIconTop=document.getElementById('pageIconTop'), pageTitleTop=document.getElementById('pageTitleTop');
+    const themeBtn=document.getElementById('themeToggle'), themeLabel=document.getElementById('themeLabel'), appVersionEl=document.getElementById('appVersion');
+    const updatesBtn=document.getElementById('updatesBtn'), topCog=document.getElementById('topCog'), updatesModal=document.getElementById('updatesModal'), updatesBackdrop=document.getElementById('updatesBackdrop'), updatesCloseBtn=document.getElementById('updatesClose'), modalVersion=document.getElementById('modalVersion'), changelogList=document.getElementById('changelogList');
+    const routeOutlet=document.getElementById('routeOutlet'), dashCopy=document.getElementById('dashCopy');
+
+    // version text
+    appVersionEl&&(appVersionEl.textContent=APP_VERSION);
+    modalVersion&&(modalVersion.textContent=APP_VERSION);
+
+    // width profile
+    function applyWidthProfile(){ if(!shell) return;
+      if (window.matchMedia('(max-width: 480px)').matches){ shell.style.maxWidth='400px'; shell.style.paddingLeft='0'; shell.style.paddingRight='0'; }
+      else if (window.matchMedia('(min-width: 768px)').matches){ shell.style.maxWidth='768px'; shell.style.paddingLeft='16px'; shell.style.paddingRight='16px'; }
+      else { shell.style.maxWidth=Math.min(768, window.innerWidth)+'px'; shell.style.paddingLeft='0'; shell.style.paddingRight='0'; } }
+    applyWidthProfile(); window.addEventListener('resize', applyWidthProfile);
+
+    // theme
+    function applyTheme(theme){ htmlEl.setAttribute('data-theme', theme); localStorage.setItem('oht.theme', theme); themeLabel&&(themeLabel.textContent=(theme==='dark'?'Light theme':'Dark theme')); }
+    (function initTheme(){ applyTheme(localStorage.getItem('oht.theme')||'dark'); })();
+    themeBtn?.addEventListener('click', ()=>{ const cur=htmlEl.getAttribute('data-theme')||'dark'; applyTheme(cur==='dark'?'light':'dark'); });
+
+    // Updates
+    const CHANGELOG=[
+      {version:'0.2.5', date:'2025-09-30', items:[
+        'Static leftbrand with Compass + OHT + Overall Health Tracker.',
+        'Sidebar aligned under brand strip on desktop.',
+        'Kept route icon+title in top bar; cog opens Updates modal.'
+      ]},
+      {version:'0.2.4', date:'2025-09-30', items:['Left strip added to remove blank gap; header pill + cog intact.']},
+      {version:'0.2.3', date:'2025-09-30', items:['Moved route header (icon+title) to top bar; restored settings cog.']},
+      {version:'0.2.2', date:'2025-09-30', items:['Desktop layout fixes; modal overlay sentinel retained.']},
+      {version:'0.2.1', date:'2025-09-30', items:['Header reflects route; integrated health-tracker.html with file:// fallback.']},
+      {version:'0.2.0', date:'2025-09-29', items:['Shell stable; theme; nav & updates modal.']},
+      		{version:'0.2.0', date:'2025-09-29', items:['Milestone: UI shell stable across mobile/desktop','Theme system complete (Dark/Light)','Sidebar with icons + two-quadrant layout','Updates modal with click-out/ESC toggle','Layout clean-up: no phantom scroll; exact width profiles'] },
+      		{version:'0.1.7', date:'2025-09-29', items:['Fix: modal CSS restored — Updates is hidden until toggled','UX: click-out/ESC close preserved; body scroll locked while open']},{version:'0.1.6', date:'2025-09-29', items:['Cleaned CSS blocks; consistent heights; modal toggle behaviour']},
+      		{version:'0.1.5', date:'2025-09-29', items:['Removed extra closing tags; corrected dashboard min-heights']},
+      		{version:'0.1.4', date:'2025-09-29', items:['Unified version; verified Dark/Light theme; added annotations']},
+      		{version:'0.1.3', date:'2025-09-29', items:['Added Updates modal; sidebar icons; theme tokens; mobile padding']},
+      		{version:'0.1.2', date:'2025-09-29', items:['Centred desktop layout; sidebar hide at 1148px']},
+      		{version:'0.1.1', date:'2025-09-29', items:['Initial landing-page shell (desktop & mobile)']},
+    ];
+    function openUpdates(){ updatesModal?.classList.add('open'); updatesModal?.setAttribute('aria-hidden','false'); document.body.style.overflow='hidden'; }
+    function closeUpdates(){ updatesModal?.classList.remove('open'); updatesModal?.setAttribute('aria-hidden','true'); document.body.style.overflow=''; }
+    function toggleUpdates(){ updatesModal?.classList.contains('open')? closeUpdates(): openUpdates(); }
+    function renderChangelog(){ if(!changelogList) return; changelogList.innerHTML=''; const frag=document.createDocumentFragment(); CHANGELOG.forEach(e=>{ const li=document.createElement('li'); const title=document.createElement('div'); title.innerHTML=`<strong>v${e.version}</strong> <span style="color:var(--muted)">(${e.date})</span>`; const ul=document.createElement('ul'); ul.style.margin='6px 0 0 18px'; e.items.forEach(t=>{ const it=document.createElement('li'); it.textContent=t; ul.appendChild(it); }); li.appendChild(title); li.appendChild(ul); frag.appendChild(li);}); changelogList.appendChild(frag); }
+    renderChangelog();
+    updatesBtn?.addEventListener('click', toggleUpdates);
+    topCog?.addEventListener('click', toggleUpdates);
+    updatesBackdrop?.addEventListener('click', closeUpdates);
+    updatesCloseBtn?.addEventListener('click', closeUpdates);
+    window.addEventListener('keydown', (e)=>{ if(e.key==='Escape'){ closeUpdates(); }});
+
+    // Router
+    const ROUTES={
+      '':{icon:'🏠', title:'Dashboard'},
+      'health':{icon:'🩺', title:'Health', fragment:'health-tracker.html'},
+      'calories':{icon:'📊', title:'Calories'},
+      'food':{icon:'🍽️', title:'Food'},
+      'fitness':{icon:'🏋️', title:'Fitness'},
+      'soreness':{icon:'🧠', title:'Soreness'},
+      'meso':{icon:'🗓️', title:'Meso'},
+      'hypertrophy':{icon:'💪', title:'Hypertrophy'}
+    };
+    function setActive(route){ document.querySelectorAll('a[href^="#"]').forEach(a=>{ const t=a.getAttribute('href').replace(/^#/, ''); a.classList.toggle('active', t===route); }); }
+    async function loadFragment(rel){
+      if(!routeOutlet) return;
+      if (location.protocol==='file:'){ routeOutlet.innerHTML=`<iframe src="${rel}" style="width:100%;min-height:70vh;border:0;" title="Fragment"></iframe>`; return; }
+      try{ const res=await fetch(rel,{cache:'no-store'}); if(!res.ok){ routeOutlet.innerHTML=`<div style="color:var(--muted)">Failed to load ${rel} (HTTP ${res.status}).</div>`; return; } const html=await res.text(); routeOutlet.innerHTML=html;
+        // re-execute any inline scripts
+        routeOutlet.querySelectorAll('script').forEach(old=>{ const s=document.createElement('script'); for(const a of old.attributes) s.setAttribute(a.name,a.value); s.textContent=old.textContent; old.replaceWith(s); });
+      }catch(e){ routeOutlet.innerHTML=`<div style="color:var(--muted)">Failed to load ${rel}.</div>`; console.error(e); }
+    }
+    function updateTopHeader(meta){ pageIconTop&&(pageIconTop.textContent=meta.icon||'🏠'); pageTitleTop&&(pageTitleTop.textContent=meta.title||'Dashboard'); }
+    async function navigate(){
+      const route=(location.hash||'').replace(/^#/, '');
+      const meta=ROUTES[route]||ROUTES[''];
+      setActive(route||'');
+      updateTopHeader(meta);
+      dashCopy&&(dashCopy.style.display = route ? 'none' : 'block');
+      if(meta.fragment){ await loadFragment(meta.fragment);} else { routeOutlet&&(routeOutlet.innerHTML=''); }
+    }
+    window.addEventListener('hashchange', navigate); navigate();
+
+    // SENTINEL: ensure modal stays overlay
+    (function ensureUpdatesModalOK(){
+      if(!updatesModal) return;
+      const cs=getComputedStyle(updatesModal);
+      if(cs.position!=='fixed'){ console.error('SENTINEL: DO_NOT_BREAK_UPDATES_MODAL — repairing modal styles'); updatesModal.style.position='fixed'; updatesModal.style.inset='0'; updatesModal.style.display='none'; updatesModal.style.zIndex='100'; updatesBackdrop&&(updatesBackdrop.style.position='absolute', updatesBackdrop.style.inset='0', updatesBackdrop.style.background='rgba(0,0,0,.45)'); }
+    })();
+  </script>
+</body>
+</html>
